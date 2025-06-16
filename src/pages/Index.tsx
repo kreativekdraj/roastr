@@ -6,7 +6,7 @@ import { PostCard } from "@/components/PostCard";
 import { CreatePost } from "@/components/CreatePost";
 import { FilterBar } from "@/components/FilterBar";
 import { UserNav } from "@/components/UserNav";
-import { Plus } from "lucide-react";
+import { Plus, Home, Search, Bookmark, User } from "lucide-react";
 import { usePosts } from "@/hooks/usePosts";
 import { useTags } from "@/hooks/useTags";
 import { useAuth } from "@/hooks/useAuth";
@@ -67,19 +67,18 @@ const Index = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white">
+    <div className="min-h-screen bg-gray-950 text-white pb-20">
       {/* Header */}
       <header className="sticky top-0 z-50 bg-gray-900/80 backdrop-blur-sm border-b border-gray-800">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <h1 className="text-2xl font-bold text-orange-500">Roastr</h1>
-              <span className="text-sm text-gray-400">Where jokes get roasted</span>
             </div>
             <div className="flex items-center space-x-4">
               <Button
                 onClick={() => setShowCreatePost(true)}
-                className="bg-orange-600 hover:bg-orange-700 text-white"
+                className="bg-orange-600 hover:bg-orange-700 text-white hidden md:flex"
               >
                 <Plus className="w-4 h-4 mr-2" />
                 Create Post
@@ -160,13 +159,33 @@ const Index = () => {
         />
       )}
 
-      {/* Floating Action Button */}
-      <Button
-        onClick={() => setShowCreatePost(true)}
-        className="fixed bottom-6 right-6 w-14 h-14 rounded-full bg-orange-600 hover:bg-orange-700 shadow-lg lg:hidden"
-      >
-        <Plus className="w-6 h-6" />
-      </Button>
+      {/* Bottom Navigation */}
+      <nav className="fixed bottom-0 left-0 right-0 bg-gray-900/95 backdrop-blur-sm border-t border-gray-800 md:hidden z-40">
+        <div className="flex items-center justify-around py-2">
+          <Button variant="ghost" className="flex flex-col items-center space-y-1 text-gray-400 hover:text-orange-500">
+            <Home className="w-5 h-5" />
+            <span className="text-xs">Home</span>
+          </Button>
+          <Button variant="ghost" className="flex flex-col items-center space-y-1 text-gray-400 hover:text-orange-500">
+            <Search className="w-5 h-5" />
+            <span className="text-xs">Search</span>
+          </Button>
+          <Button
+            onClick={() => setShowCreatePost(true)}
+            className="bg-orange-600 hover:bg-orange-700 text-white rounded-full w-12 h-12 flex items-center justify-center"
+          >
+            <Plus className="w-6 h-6" />
+          </Button>
+          <Button variant="ghost" className="flex flex-col items-center space-y-1 text-gray-400 hover:text-orange-500">
+            <Bookmark className="w-5 h-5" />
+            <span className="text-xs">Saved</span>
+          </Button>
+          <Button variant="ghost" className="flex flex-col items-center space-y-1 text-gray-400 hover:text-orange-500">
+            <User className="w-5 h-5" />
+            <span className="text-xs">Profile</span>
+          </Button>
+        </div>
+      </nav>
     </div>
   );
 };

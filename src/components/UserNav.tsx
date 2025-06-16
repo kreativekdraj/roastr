@@ -8,6 +8,7 @@ import {
   DropdownMenuSeparator, 
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { User, Settings, LogOut, LogIn } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
@@ -59,16 +60,21 @@ export const UserNav = () => {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-          <div className="w-8 h-8 bg-orange-600 rounded-full flex items-center justify-center">
-            <span className="text-white text-sm font-bold">
+        <Button variant="ghost" className="relative h-10 w-10 rounded-full p-0">
+          <Avatar className="h-10 w-10">
+            <AvatarFallback className="bg-orange-600 text-white font-semibold">
               {profile?.username?.[0]?.toUpperCase() || "U"}
-            </span>
-          </div>
+            </AvatarFallback>
+          </Avatar>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-56 bg-gray-800 border-gray-700" align="end">
         <div className="flex items-center justify-start gap-2 p-2">
+          <Avatar className="h-8 w-8">
+            <AvatarFallback className="bg-orange-600 text-white text-sm font-semibold">
+              {profile?.username?.[0]?.toUpperCase() || "U"}
+            </AvatarFallback>
+          </Avatar>
           <div className="flex flex-col space-y-1 leading-none">
             <p className="font-medium text-white">{profile?.username || "User"}</p>
             <p className="text-xs text-gray-400">Roast enthusiast</p>

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
@@ -51,7 +50,7 @@ export const usePosts = () => {
           const { data: voteCountsData } = await supabase
             .rpc('get_vote_counts', { post_uuid: post.id });
 
-          const voteCounts = voteCountsData as VoteCounts;
+          const voteCounts = (voteCountsData as unknown) as VoteCounts;
 
           // Get user's vote if logged in
           let userVote = null;
