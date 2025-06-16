@@ -15,6 +15,7 @@ export interface Post {
   isNSFW: boolean;
   userVote?: "upvote" | "downvote" | null;
   isSaved?: boolean;
+  user_id?: string;
 }
 
 interface VoteCounts {
@@ -29,7 +30,6 @@ export const usePosts = () => {
 
   const fetchPosts = async () => {
     try {
-      // Fetch posts with tags but without profiles join (since posts.user_id can be null for anonymous posts)
       const { data: postsData, error: postsError } = await supabase
         .from('posts')
         .select(`
@@ -43,16 +43,13 @@ export const usePosts = () => {
 
       if (postsError) throw postsError;
 
-      // For each post, fetch vote counts, user's vote, profile info, and saved status
       const postsWithVotes = await Promise.all(
         postsData.map(async (post) => {
-          // Get vote counts
           const { data: voteCountsData } = await supabase
             .rpc('get_vote_counts', { post_uuid: post.id });
 
           const voteCounts = (voteCountsData as unknown) as VoteCounts;
 
-          // Get user's vote if logged in
           let userVote = null;
           if (user) {
             const { data: voteData } = await supabase
@@ -65,7 +62,6 @@ export const usePosts = () => {
             userVote = voteData?.vote_type || null;
           }
 
-          // Check if saved by user
           let isSaved = false;
           if (user) {
             const { data: savedData } = await supabase
@@ -78,7 +74,6 @@ export const usePosts = () => {
             isSaved = !!savedData;
           }
 
-          // Get username for non-anonymous posts
           let username = "Anonymous";
           if (!post.is_anonymous && post.user_id) {
             const { data: profileData } = await supabase
@@ -104,7 +99,8 @@ export const usePosts = () => {
             createdAt: post.created_at,
             isNSFW: post.post_tags.some((pt: any) => pt.tags.is_sensitive),
             userVote,
-            isSaved
+            isSaved,
+            user_id: post.user_id
           };
         })
       );
@@ -122,9 +118,31 @@ export const usePosts = () => {
     fetchPosts();
   }, [user]);
 
+  const deletePost = async (postId: string) => {
+    if (!user) {
+      toast.error("Please log in to delete posts");
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('posts')
+        .update({ status: 'deleted' })
+        .eq('id', postId)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      await fetchPosts();
+      toast.success("Post deleted successfully");
+    } catch (error) {
+      console.error('Error deleting post:', error);
+      toast.error('Failed to delete post');
+    }
+  };
+
   const createPost = async (content: string, tagNames: string[], isAnonymous: boolean = false) => {
     try {
-      // Get tag IDs
       const { data: tags, error: tagsError } = await supabase
         .from('tags')
         .select('id, name')
@@ -132,7 +150,6 @@ export const usePosts = () => {
 
       if (tagsError) throw tagsError;
 
-      // Create post
       const { data: post, error: postError } = await supabase
         .from('posts')
         .insert({
@@ -145,7 +162,6 @@ export const usePosts = () => {
 
       if (postError) throw postError;
 
-      // Add tags
       const postTags = tags.map(tag => ({
         post_id: post.id,
         tag_id: tag.id
@@ -157,7 +173,6 @@ export const usePosts = () => {
 
       if (tagError) throw tagError;
 
-      // Refresh posts
       await fetchPosts();
       toast.success("Post created successfully! 🔥");
     } catch (error) {
@@ -173,7 +188,6 @@ export const usePosts = () => {
     }
 
     try {
-      // Check if user already voted
       const { data: existingVote } = await supabase
         .from('votes')
         .select('vote_type')
@@ -183,14 +197,12 @@ export const usePosts = () => {
 
       if (existingVote) {
         if (existingVote.vote_type === voteType) {
-          // Remove vote
           await supabase
             .from('votes')
             .delete()
             .eq('post_id', postId)
             .eq('user_id', user.id);
         } else {
-          // Update vote
           await supabase
             .from('votes')
             .update({ vote_type: voteType })
@@ -198,7 +210,6 @@ export const usePosts = () => {
             .eq('user_id', user.id);
         }
       } else {
-        // Create new vote
         await supabase
           .from('votes')
           .insert({
@@ -209,7 +220,6 @@ export const usePosts = () => {
           });
       }
 
-      // Refresh posts
       await fetchPosts();
     } catch (error) {
       console.error('Error voting:', error);
@@ -232,7 +242,6 @@ export const usePosts = () => {
         .maybeSingle();
 
       if (existingSave) {
-        // Remove save
         await supabase
           .from('saved_posts')
           .delete()
@@ -240,7 +249,6 @@ export const usePosts = () => {
           .eq('user_id', user.id);
         toast.success("Post removed from library");
       } else {
-        // Save post
         await supabase
           .from('saved_posts')
           .insert({
@@ -250,7 +258,6 @@ export const usePosts = () => {
         toast.success("Post saved to library! 📌");
       }
 
-      // Refresh posts
       await fetchPosts();
     } catch (error) {
       console.error('Error saving post:', error);
@@ -265,7 +272,7 @@ export const usePosts = () => {
         .insert({
           post_id: postId,
           user_id: user?.id || null,
-          ip_hash: user ? null : 'anonymous_' + Date.now() // Simple anonymous tracking
+          ip_hash: user ? null : 'anonymous_' + Date.now()
         });
 
       toast.success("Post reported. Thanks for keeping Roastr clean! 🚫");
@@ -282,6 +289,7 @@ export const usePosts = () => {
     vote,
     savePost,
     reportPost,
+    deletePost,
     refreshPosts: fetchPosts
   };
 };

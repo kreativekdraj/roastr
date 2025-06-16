@@ -10,21 +10,33 @@ import {
   Flag, 
   Share2,
   Eye,
-  BookmarkCheck
+  BookmarkCheck,
+  Trash2,
+  MoreHorizontal
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { Post } from "@/hooks/usePosts";
+import { useAuth } from "@/hooks/useAuth";
+import { getRandomAvatarColor, getAvatarInitials } from "@/utils/avatarUtils";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface PostCardProps {
   post: Post;
   onVote: (postId: string, voteType: "upvote" | "downvote") => void;
   onSave: (postId: string) => void;
   onReport: (postId: string) => void;
+  onDelete: (postId: string) => void;
   showNSFW: boolean;
 }
 
-export const PostCard = ({ post, onVote, onSave, onReport, showNSFW }: PostCardProps) => {
+export const PostCard = ({ post, onVote, onSave, onReport, onDelete, showNSFW }: PostCardProps) => {
   const [isNSFWRevealed, setIsNSFWRevealed] = useState(false);
+  const { user } = useAuth();
 
   const handleVote = (voteType: "upvote" | "downvote") => {
     onVote(post.id, voteType);
@@ -44,6 +56,8 @@ export const PostCard = ({ post, onVote, onSave, onReport, showNSFW }: PostCardP
 
   const shouldBlurNSFW = post.isNSFW && !showNSFW && !isNSFWRevealed;
   const timeAgo = formatDistanceToNow(new Date(post.createdAt), { addSuffix: true });
+  const avatarColor = getRandomAvatarColor(post.username);
+  const canDelete = user && post.user_id === user.id;
 
   return (
     <Card className="bg-gray-900 border-gray-800 hover:border-gray-700 transition-all duration-200">
@@ -51,9 +65,9 @@ export const PostCard = ({ post, onVote, onSave, onReport, showNSFW }: PostCardP
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 bg-orange-600 rounded-full flex items-center justify-center">
+            <div className={`w-8 h-8 ${post.isAnonymous ? 'bg-gray-600' : avatarColor} rounded-full flex items-center justify-center`}>
               <span className="text-white text-sm font-bold">
-                {post.isAnonymous ? "?" : post.username[0]?.toUpperCase()}
+                {post.isAnonymous ? "?" : getAvatarInitials(post.username)}
               </span>
             </div>
             <div>
@@ -69,11 +83,31 @@ export const PostCard = ({ post, onVote, onSave, onReport, showNSFW }: PostCardP
               <Badge 
                 key={index} 
                 variant="secondary" 
-                className="bg-gray-800 text-gray-300 hover:bg-gray-700"
+                className="bg-gray-800 text-gray-300 hover:bg-gray-700 cursor-help"
+                title={tag.name}
               >
                 {tag.emoji}
               </Badge>
             ))}
+            
+            {canDelete && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white">
+                    <MoreHorizontal className="w-4 h-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="bg-gray-800 border-gray-700">
+                  <DropdownMenuItem 
+                    onClick={() => onDelete(post.id)}
+                    className="text-red-400 hover:bg-red-500/10 hover:text-red-300"
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Delete Post
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
           </div>
         </div>
 

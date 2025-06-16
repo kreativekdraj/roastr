@@ -10,11 +10,13 @@ import { Plus, Home, Search, Bookmark, User } from "lucide-react";
 import { usePosts } from "@/hooks/usePosts";
 import { useTags } from "@/hooks/useTags";
 import { useAuth } from "@/hooks/useAuth";
+import { useNavigate } from "react-router-dom";
 
 const Index = () => {
-  const { posts, loading, createPost, vote, savePost, reportPost } = usePosts();
+  const { posts, loading, createPost, vote, savePost, reportPost, deletePost } = usePosts();
   const { tags } = useTags();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [filteredPosts, setFilteredPosts] = useState(posts);
   const [sortBy, setSortBy] = useState("newest");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
@@ -24,14 +26,12 @@ const Index = () => {
   useEffect(() => {
     let filtered = [...posts];
 
-    // Filter by tags
     if (selectedTags.length > 0) {
       filtered = filtered.filter(post => 
         selectedTags.some(tagName => post.tags.some(tag => tag.name === tagName))
       );
     }
 
-    // Sort posts
     switch (sortBy) {
       case "newest":
         filtered.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
@@ -89,33 +89,31 @@ const Index = () => {
         </div>
       </header>
 
+      {/* Filter Bar */}
+      <FilterBar
+        tags={tags}
+        selectedTags={selectedTags}
+        onTagChange={setSelectedTags}
+        sortBy={sortBy}
+        onSortChange={setSortBy}
+      />
+
       <div className="container mx-auto px-4 py-6">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Sidebar */}
           <div className="lg:col-span-1">
             <Card className="bg-gray-900 border-gray-800">
               <CardContent className="p-4">
-                <h3 className="font-semibold mb-4 text-orange-500">Filter Posts</h3>
-                <FilterBar
-                  tags={tags}
-                  selectedTags={selectedTags}
-                  onTagChange={setSelectedTags}
-                  sortBy={sortBy}
-                  onSortChange={setSortBy}
-                />
-                
-                <div className="mt-6 p-4 bg-gray-800 rounded-lg">
-                  <h4 className="font-medium mb-2 text-orange-400">NSFW Content</h4>
-                  <label className="flex items-center space-x-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={showNSFW}
-                      onChange={(e) => setShowNSFW(e.target.checked)}
-                      className="rounded border-gray-600 text-orange-500 focus:ring-orange-500"
-                    />
-                    <span className="text-sm text-gray-300">Show NSFW posts</span>
-                  </label>
-                </div>
+                <h3 className="font-semibold mb-4 text-orange-500">NSFW Content</h3>
+                <label className="flex items-center space-x-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={showNSFW}
+                    onChange={(e) => setShowNSFW(e.target.checked)}
+                    className="rounded border-gray-600 text-orange-500 focus:ring-orange-500"
+                  />
+                  <span className="text-sm text-gray-300">Show NSFW posts</span>
+                </label>
               </CardContent>
             </Card>
           </div>
@@ -130,6 +128,7 @@ const Index = () => {
                   onVote={vote}
                   onSave={savePost}
                   onReport={reportPost}
+                  onDelete={deletePost}
                   showNSFW={showNSFW}
                 />
               ))}
@@ -162,7 +161,11 @@ const Index = () => {
       {/* Bottom Navigation */}
       <nav className="fixed bottom-0 left-0 right-0 bg-gray-900/95 backdrop-blur-sm border-t border-gray-800 md:hidden z-40">
         <div className="flex items-center justify-around py-2">
-          <Button variant="ghost" className="flex flex-col items-center space-y-1 text-gray-400 hover:text-orange-500">
+          <Button 
+            variant="ghost" 
+            className="flex flex-col items-center space-y-1 text-orange-500"
+            onClick={() => navigate("/")}
+          >
             <Home className="w-5 h-5" />
             <span className="text-xs">Home</span>
           </Button>
@@ -176,11 +179,19 @@ const Index = () => {
           >
             <Plus className="w-6 h-6" />
           </Button>
-          <Button variant="ghost" className="flex flex-col items-center space-y-1 text-gray-400 hover:text-orange-500">
+          <Button 
+            variant="ghost" 
+            className="flex flex-col items-center space-y-1 text-gray-400 hover:text-orange-500"
+            onClick={() => navigate("/saved")}
+          >
             <Bookmark className="w-5 h-5" />
             <span className="text-xs">Saved</span>
           </Button>
-          <Button variant="ghost" className="flex flex-col items-center space-y-1 text-gray-400 hover:text-orange-500">
+          <Button 
+            variant="ghost" 
+            className="flex flex-col items-center space-y-1 text-gray-400 hover:text-orange-500"
+            onClick={() => navigate("/profile")}
+          >
             <User className="w-5 h-5" />
             <span className="text-xs">Profile</span>
           </Button>
