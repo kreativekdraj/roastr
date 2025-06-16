@@ -2,98 +2,24 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PostCard } from "@/components/PostCard";
 import { CreatePost } from "@/components/CreatePost";
 import { FilterBar } from "@/components/FilterBar";
 import { UserNav } from "@/components/UserNav";
 import { Plus } from "lucide-react";
-import { toast } from "sonner";
-
-// Mock data for demonstration - in real app this would come from Supabase
-const mockPosts = [
-  {
-    id: "1",
-    content: "Why don't scientists trust atoms? Because they make up everything!",
-    tags: ["😂", "🧀"],
-    tagNames: ["Joke", "Dad Joke"],
-    upvotes: 156,
-    downvotes: 12,
-    username: "ComedyKing",
-    isAnonymous: false,
-    createdAt: "2024-01-15T10:30:00Z",
-    isNSFW: false
-  },
-  {
-    id: "2",
-    content: "Your hairline is so far back, it's got its own zip code and they're considering making it a separate time zone.",
-    tags: ["🔥", "😈"],
-    tagNames: ["Roast", "Insult"],
-    upvotes: 234,
-    downvotes: 45,
-    username: "Anonymous",
-    isAnonymous: true,
-    createdAt: "2024-01-15T09:15:00Z",
-    isNSFW: false
-  },
-  {
-    id: "3",
-    content: "I told my wife she was drawing her eyebrows too high. She looked surprised.",
-    tags: ["😂", "🙃"],
-    tagNames: ["Joke", "Sarcasm"],
-    upvotes: 89,
-    downvotes: 23,
-    username: "WittyWilson",
-    isAnonymous: false,
-    createdAt: "2024-01-15T08:45:00Z",
-    isNSFW: false
-  },
-  {
-    id: "4",
-    content: "You're like a software update. Whenever I see you, I think 'not now.'",
-    tags: ["😈", "🧠"],
-    tagNames: ["Insult", "Satire"],
-    upvotes: 312,
-    downvotes: 67,
-    username: "TechSavage",
-    isAnonymous: false,
-    createdAt: "2024-01-15T07:20:00Z",
-    isNSFW: false
-  },
-  {
-    id: "5",
-    content: "Your performance in bed is like a Windows update - it takes forever, happens when you least expect it, and leaves everyone disappointed.",
-    tags: ["🔞", "🔥", "😈"],
-    tagNames: ["NSFW", "Roast", "Insult"],
-    upvotes: 445,
-    downvotes: 89,
-    username: "Anonymous",
-    isAnonymous: true,
-    createdAt: "2024-01-14T22:10:00Z",
-    isNSFW: true
-  }
-];
+import { usePosts } from "@/hooks/usePosts";
+import { useTags } from "@/hooks/useTags";
+import { useAuth } from "@/hooks/useAuth";
 
 const Index = () => {
-  const [posts, setPosts] = useState(mockPosts);
-  const [filteredPosts, setFilteredPosts] = useState(mockPosts);
+  const { posts, loading, createPost, vote, savePost, reportPost } = usePosts();
+  const { tags } = useTags();
+  const { user } = useAuth();
+  const [filteredPosts, setFilteredPosts] = useState(posts);
   const [sortBy, setSortBy] = useState("newest");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [showCreatePost, setShowCreatePost] = useState(false);
   const [showNSFW, setShowNSFW] = useState(false);
-
-  const allTags = [
-    { emoji: "😂", name: "Joke" },
-    { emoji: "😈", name: "Insult" },
-    { emoji: "🔥", name: "Roast" },
-    { emoji: "🔞", name: "NSFW" },
-    { emoji: "☠️", name: "Dark" },
-    { emoji: "🧀", name: "Dad Joke" },
-    { emoji: "🙃", name: "Sarcasm" },
-    { emoji: "🧠", name: "Satire" }
-  ];
 
   useEffect(() => {
     let filtered = [...posts];
@@ -101,7 +27,7 @@ const Index = () => {
     // Filter by tags
     if (selectedTags.length > 0) {
       filtered = filtered.filter(post => 
-        selectedTags.some(tag => post.tags.includes(tag))
+        selectedTags.some(tagName => post.tags.some(tag => tag.name === tagName))
       );
     }
 
@@ -124,40 +50,21 @@ const Index = () => {
     setFilteredPosts(filtered);
   }, [posts, selectedTags, sortBy]);
 
-  const handleCreatePost = (newPost: any) => {
-    const post = {
-      id: Date.now().toString(),
-      ...newPost,
-      upvotes: 0,
-      downvotes: 0,
-      createdAt: new Date().toISOString()
-    };
-    setPosts([post, ...posts]);
+  const handleCreatePost = async (content: string, tagNames: string[], isAnonymous: boolean) => {
+    await createPost(content, tagNames, isAnonymous);
     setShowCreatePost(false);
-    toast.success("Post created successfully! 🔥");
   };
 
-  const handleVote = (postId: string, voteType: "upvote" | "downvote") => {
-    setPosts(posts.map(post => {
-      if (post.id === postId) {
-        return {
-          ...post,
-          upvotes: voteType === "upvote" ? post.upvotes + 1 : post.upvotes,
-          downvotes: voteType === "downvote" ? post.downvotes + 1 : post.downvotes
-        };
-      }
-      return post;
-    }));
-    toast.success(voteType === "upvote" ? "Upvoted! 👍" : "Downvoted! 👎");
-  };
-
-  const handleSave = (postId: string) => {
-    toast.success("Post saved to your library! 📌");
-  };
-
-  const handleReport = (postId: string) => {
-    toast.success("Post reported. Thanks for keeping Roastr clean! 🚫");
-  };
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-950 text-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-orange-500 mx-auto"></div>
+          <p className="mt-4 text-gray-400">Loading roasts...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-950 text-white">
@@ -191,7 +98,7 @@ const Index = () => {
               <CardContent className="p-4">
                 <h3 className="font-semibold mb-4 text-orange-500">Filter Posts</h3>
                 <FilterBar
-                  tags={allTags}
+                  tags={tags}
                   selectedTags={selectedTags}
                   onTagChange={setSelectedTags}
                   sortBy={sortBy}
@@ -221,17 +128,22 @@ const Index = () => {
                 <PostCard
                   key={post.id}
                   post={post}
-                  onVote={handleVote}
-                  onSave={handleSave}
-                  onReport={handleReport}
+                  onVote={vote}
+                  onSave={savePost}
+                  onReport={reportPost}
                   showNSFW={showNSFW}
                 />
               ))}
               
-              {filteredPosts.length === 0 && (
+              {filteredPosts.length === 0 && !loading && (
                 <Card className="bg-gray-900 border-gray-800">
                   <CardContent className="p-8 text-center">
-                    <p className="text-gray-400">No posts match your filters. Try adjusting your selection!</p>
+                    <p className="text-gray-400">
+                      {posts.length === 0 
+                        ? "No posts yet. Be the first to drop a roast! 🔥" 
+                        : "No posts match your filters. Try adjusting your selection!"
+                      }
+                    </p>
                   </CardContent>
                 </Card>
               )}
@@ -245,7 +157,6 @@ const Index = () => {
         <CreatePost
           onClose={() => setShowCreatePost(false)}
           onSubmit={handleCreatePost}
-          tags={allTags}
         />
       )}
 

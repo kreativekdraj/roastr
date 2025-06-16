@@ -6,28 +6,26 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { X, Send } from "lucide-react";
 import { toast } from "sonner";
-
-interface Tag {
-  emoji: string;
-  name: string;
-}
+import { useTags } from "@/hooks/useTags";
+import { useAuth } from "@/hooks/useAuth";
 
 interface CreatePostProps {
   onClose: () => void;
-  onSubmit: (post: any) => void;
-  tags: Tag[];
+  onSubmit: (content: string, tagNames: string[], isAnonymous: boolean) => void;
 }
 
-export const CreatePost = ({ onClose, onSubmit, tags }: CreatePostProps) => {
+export const CreatePost = ({ onClose, onSubmit }: CreatePostProps) => {
   const [content, setContent] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [postAsAnonymous, setPostAsAnonymous] = useState(false);
+  const { tags } = useTags();
+  const { user } = useAuth();
 
-  const handleTagToggle = (tagEmoji: string) => {
+  const handleTagToggle = (tagName: string) => {
     setSelectedTags(prev => 
-      prev.includes(tagEmoji) 
-        ? prev.filter(t => t !== tagEmoji)
-        : [...prev, tagEmoji]
+      prev.includes(tagName) 
+        ? prev.filter(t => t !== tagName)
+        : [...prev, tagName]
     );
   };
 
@@ -47,18 +45,7 @@ export const CreatePost = ({ onClose, onSubmit, tags }: CreatePostProps) => {
       return;
     }
 
-    const post = {
-      content: content.trim(),
-      tags: selectedTags,
-      tagNames: selectedTags.map(emoji => 
-        tags.find(tag => tag.emoji === emoji)?.name || ""
-      ),
-      username: postAsAnonymous ? "Anonymous" : "CurrentUser",
-      isAnonymous: postAsAnonymous,
-      isNSFW: selectedTags.includes("🔞")
-    };
-
-    onSubmit(post);
+    onSubmit(content.trim(), selectedTags, postAsAnonymous);
   };
 
   const characterCount = content.length;
@@ -104,14 +91,14 @@ export const CreatePost = ({ onClose, onSubmit, tags }: CreatePostProps) => {
             <div className="flex flex-wrap gap-2">
               {tags.map((tag) => (
                 <Badge
-                  key={tag.emoji}
-                  variant={selectedTags.includes(tag.emoji) ? "default" : "outline"}
+                  key={tag.id}
+                  variant={selectedTags.includes(tag.name) ? "default" : "outline"}
                   className={`cursor-pointer transition-all ${
-                    selectedTags.includes(tag.emoji)
+                    selectedTags.includes(tag.name)
                       ? "bg-orange-600 text-white border-orange-600"
                       : "bg-gray-800 text-gray-300 border-gray-600 hover:border-orange-500"
                   }`}
-                  onClick={() => handleTagToggle(tag.emoji)}
+                  onClick={() => handleTagToggle(tag.name)}
                 >
                   {tag.emoji} {tag.name}
                 </Badge>
@@ -120,21 +107,20 @@ export const CreatePost = ({ onClose, onSubmit, tags }: CreatePostProps) => {
           </div>
 
           {/* Anonymous Toggle */}
-          <div className="flex items-center space-x-3 p-4 bg-gray-800 rounded-lg">
-            <input
-              type="checkbox"
-              id="anonymous"
-              checked={postAsAnonymous}
-              onChange={(e) => setPostAsAnonymous(e.target.checked)}
-              className="rounded border-gray-600 text-orange-500 focus:ring-orange-500"
-            />
-            <label htmlFor="anonymous" className="text-sm text-gray-300 cursor-pointer">
-              Post anonymously
-            </label>
-            <span className="text-xs text-gray-500">
-              (Anonymous users limited to 2 posts per day)
-            </span>
-          </div>
+          {user && (
+            <div className="flex items-center space-x-3 p-4 bg-gray-800 rounded-lg">
+              <input
+                type="checkbox"
+                id="anonymous"
+                checked={postAsAnonymous}
+                onChange={(e) => setPostAsAnonymous(e.target.checked)}
+                className="rounded border-gray-600 text-orange-500 focus:ring-orange-500"
+              />
+              <label htmlFor="anonymous" className="text-sm text-gray-300 cursor-pointer">
+                Post anonymously
+              </label>
+            </div>
+          )}
 
           {/* Submit Button */}
           <div className="flex justify-end space-x-3">

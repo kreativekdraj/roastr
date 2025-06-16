@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { 
   DropdownMenu, 
@@ -9,21 +9,41 @@ import {
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
 import { User, Settings, LogOut, LogIn } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 
 export const UserNav = () => {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [user, setUser] = useState({ username: "RoastMaster", avatar: null });
+  const { user, signOut } = useAuth();
+  const [profile, setProfile] = useState<{ username: string } | null>(null);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (user) {
+      const fetchProfile = async () => {
+        const { data } = await supabase
+          .from('profiles')
+          .select('username')
+          .eq('id', user.id)
+          .single();
+        
+        setProfile(data);
+      };
+      
+      fetchProfile();
+    }
+  }, [user]);
 
   const handleLogin = () => {
-    // In real app, this would open a login modal or redirect
-    setIsLoggedIn(true);
+    navigate("/auth");
   };
 
-  const handleLogout = () => {
-    setIsLoggedIn(false);
+  const handleLogout = async () => {
+    await signOut();
+    navigate("/");
   };
 
-  if (!isLoggedIn) {
+  if (!user) {
     return (
       <Button
         onClick={handleLogin}
@@ -42,7 +62,7 @@ export const UserNav = () => {
         <Button variant="ghost" className="relative h-8 w-8 rounded-full">
           <div className="w-8 h-8 bg-orange-600 rounded-full flex items-center justify-center">
             <span className="text-white text-sm font-bold">
-              {user.username[0].toUpperCase()}
+              {profile?.username?.[0]?.toUpperCase() || "U"}
             </span>
           </div>
         </Button>
@@ -50,7 +70,7 @@ export const UserNav = () => {
       <DropdownMenuContent className="w-56 bg-gray-800 border-gray-700" align="end">
         <div className="flex items-center justify-start gap-2 p-2">
           <div className="flex flex-col space-y-1 leading-none">
-            <p className="font-medium text-white">{user.username}</p>
+            <p className="font-medium text-white">{profile?.username || "User"}</p>
             <p className="text-xs text-gray-400">Roast enthusiast</p>
           </div>
         </div>

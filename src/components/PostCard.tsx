@@ -10,22 +10,10 @@ import {
   Flag, 
   Share2,
   Eye,
-  EyeOff
+  BookmarkCheck
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
-
-interface Post {
-  id: string;
-  content: string;
-  tags: string[];
-  tagNames: string[];
-  upvotes: number;
-  downvotes: number;
-  username: string;
-  isAnonymous: boolean;
-  createdAt: string;
-  isNSFW: boolean;
-}
+import { Post } from "@/hooks/usePosts";
 
 interface PostCardProps {
   post: Post;
@@ -37,19 +25,13 @@ interface PostCardProps {
 
 export const PostCard = ({ post, onVote, onSave, onReport, showNSFW }: PostCardProps) => {
   const [isNSFWRevealed, setIsNSFWRevealed] = useState(false);
-  const [userVote, setUserVote] = useState<"upvote" | "downvote" | null>(null);
 
   const handleVote = (voteType: "upvote" | "downvote") => {
-    if (userVote === voteType) {
-      setUserVote(null);
-    } else {
-      setUserVote(voteType);
-      onVote(post.id, voteType);
-    }
+    onVote(post.id, voteType);
   };
 
   const handleShare = () => {
-    const shareText = `${post.tags.join(" ")} ${post.content}\n\n🔗 Check out more roasts on Roastr!`;
+    const shareText = `${post.tags.map(t => t.emoji).join(" ")} ${post.content}\n\n🔗 Check out more roasts on Roastr!`;
     if (navigator.share) {
       navigator.share({
         title: "Roastr Post",
@@ -71,12 +53,12 @@ export const PostCard = ({ post, onVote, onSave, onReport, showNSFW }: PostCardP
           <div className="flex items-center space-x-3">
             <div className="w-8 h-8 bg-orange-600 rounded-full flex items-center justify-center">
               <span className="text-white text-sm font-bold">
-                {post.isAnonymous ? "?" : post.username[0].toUpperCase()}
+                {post.isAnonymous ? "?" : post.username[0]?.toUpperCase()}
               </span>
             </div>
             <div>
               <p className="font-medium text-white">
-                {post.isAnonymous ? "Anonymous" : post.username}
+                {post.username}
               </p>
               <p className="text-sm text-gray-400">{timeAgo}</p>
             </div>
@@ -89,7 +71,7 @@ export const PostCard = ({ post, onVote, onSave, onReport, showNSFW }: PostCardP
                 variant="secondary" 
                 className="bg-gray-800 text-gray-300 hover:bg-gray-700"
               >
-                {tag}
+                {tag.emoji}
               </Badge>
             ))}
           </div>
@@ -127,7 +109,7 @@ export const PostCard = ({ post, onVote, onSave, onReport, showNSFW }: PostCardP
               size="sm"
               onClick={() => handleVote("upvote")}
               className={`flex items-center space-x-2 ${
-                userVote === "upvote" 
+                post.userVote === "upvote" 
                   ? "text-green-500 bg-green-500/10" 
                   : "text-gray-400 hover:text-green-500"
               }`}
@@ -142,7 +124,7 @@ export const PostCard = ({ post, onVote, onSave, onReport, showNSFW }: PostCardP
               size="sm"
               onClick={() => handleVote("downvote")}
               className={`flex items-center space-x-2 ${
-                userVote === "downvote" 
+                post.userVote === "downvote" 
                   ? "text-red-500 bg-red-500/10" 
                   : "text-gray-400 hover:text-red-500"
               }`}
@@ -158,9 +140,13 @@ export const PostCard = ({ post, onVote, onSave, onReport, showNSFW }: PostCardP
               variant="ghost"
               size="sm"
               onClick={() => onSave(post.id)}
-              className="text-gray-400 hover:text-orange-500"
+              className={`${
+                post.isSaved
+                  ? "text-orange-500"
+                  : "text-gray-400 hover:text-orange-500"
+              }`}
             >
-              <Bookmark className="w-4 h-4" />
+              {post.isSaved ? <BookmarkCheck className="w-4 h-4" /> : <Bookmark className="w-4 h-4" />}
             </Button>
 
             {/* Share */}

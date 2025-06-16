@@ -1,11 +1,7 @@
 
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-
-interface Tag {
-  emoji: string;
-  name: string;
-}
+import { Tag } from "@/hooks/useTags";
 
 interface FilterBarProps {
   tags: Tag[];
@@ -16,10 +12,10 @@ interface FilterBarProps {
 }
 
 export const FilterBar = ({ tags, selectedTags, onTagChange, sortBy, onSortChange }: FilterBarProps) => {
-  const handleTagToggle = (tagEmoji: string) => {
-    const newTags = selectedTags.includes(tagEmoji)
-      ? selectedTags.filter(t => t !== tagEmoji)
-      : [...selectedTags, tagEmoji];
+  const handleTagToggle = (tagName: string) => {
+    const newTags = selectedTags.includes(tagName)
+      ? selectedTags.filter(t => t !== tagName)
+      : [...selectedTags, tagName];
     onTagChange(newTags);
   };
 
@@ -47,14 +43,14 @@ export const FilterBar = ({ tags, selectedTags, onTagChange, sortBy, onSortChang
         <div className="flex flex-wrap gap-2">
           {tags.map((tag) => (
             <Badge
-              key={tag.emoji}
-              variant={selectedTags.includes(tag.emoji) ? "default" : "outline"}
+              key={tag.id}
+              variant={selectedTags.includes(tag.name) ? "default" : "outline"}
               className={`cursor-pointer transition-all text-xs ${
-                selectedTags.includes(tag.emoji)
+                selectedTags.includes(tag.name)
                   ? "bg-orange-600 text-white border-orange-600"
                   : "bg-gray-800 text-gray-300 border-gray-600 hover:border-orange-500"
               }`}
-              onClick={() => handleTagToggle(tag.emoji)}
+              onClick={() => handleTagToggle(tag.name)}
             >
               {tag.emoji}
             </Badge>
