@@ -18,6 +18,11 @@ export interface Post {
   isSaved?: boolean;
 }
 
+interface VoteCounts {
+  upvotes: number;
+  downvotes: number;
+}
+
 export const usePosts = () => {
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
@@ -25,27 +30,28 @@ export const usePosts = () => {
 
   const fetchPosts = async () => {
     try {
-      // Fetch posts with tags and vote counts
+      // Fetch posts with tags but without profiles join (since posts.user_id can be null for anonymous posts)
       const { data: postsData, error: postsError } = await supabase
         .from('posts')
         .select(`
           *,
           post_tags(
             tags(name, emoji, is_sensitive)
-          ),
-          profiles(username)
+          )
         `)
         .eq('status', 'visible')
         .order('created_at', { ascending: false });
 
       if (postsError) throw postsError;
 
-      // For each post, fetch vote counts and user's vote
+      // For each post, fetch vote counts, user's vote, profile info, and saved status
       const postsWithVotes = await Promise.all(
         postsData.map(async (post) => {
           // Get vote counts
-          const { data: voteCounts } = await supabase
+          const { data: voteCountsData } = await supabase
             .rpc('get_vote_counts', { post_uuid: post.id });
+
+          const voteCounts = voteCountsData as VoteCounts;
 
           // Get user's vote if logged in
           let userVote = null;
@@ -55,7 +61,7 @@ export const usePosts = () => {
               .select('vote_type')
               .eq('post_id', post.id)
               .eq('user_id', user.id)
-              .single();
+              .maybeSingle();
             
             userVote = voteData?.vote_type || null;
           }
@@ -68,9 +74,21 @@ export const usePosts = () => {
               .select('id')
               .eq('post_id', post.id)
               .eq('user_id', user.id)
-              .single();
+              .maybeSingle();
             
             isSaved = !!savedData;
+          }
+
+          // Get username for non-anonymous posts
+          let username = "Anonymous";
+          if (!post.is_anonymous && post.user_id) {
+            const { data: profileData } = await supabase
+              .from('profiles')
+              .select('username')
+              .eq('id', post.user_id)
+              .maybeSingle();
+            
+            username = profileData?.username || "Unknown";
           }
 
           return {
@@ -82,7 +100,7 @@ export const usePosts = () => {
             })),
             upvotes: voteCounts?.upvotes || 0,
             downvotes: voteCounts?.downvotes || 0,
-            username: post.is_anonymous ? "Anonymous" : (post.profiles?.username || "Unknown"),
+            username,
             isAnonymous: post.is_anonymous,
             createdAt: post.created_at,
             isNSFW: post.post_tags.some((pt: any) => pt.tags.is_sensitive),
@@ -162,7 +180,7 @@ export const usePosts = () => {
         .select('vote_type')
         .eq('post_id', postId)
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
       if (existingVote) {
         if (existingVote.vote_type === voteType) {
@@ -212,7 +230,7 @@ export const usePosts = () => {
         .select('id')
         .eq('post_id', postId)
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
       if (existingSave) {
         // Remove save
